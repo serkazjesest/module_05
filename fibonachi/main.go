@@ -9,7 +9,8 @@ func main() {
 	go spinner(100 * time.Millisecond)
 	n1, n2 := 44, 45
 	go fmt.Printf("\rFibonacci(%d) = %d\n", n1, fib(n1))
-	fmt.Printf("\rFibonacci(%d) = %d\n", n2, fib(n2))
+	go fmt.Printf("\rFibonacci(%d) = %d\n", n2, fib(n2))
+	time.Sleep(2 * time.Second)
 }
 
 func spinner(delay time.Duration) {
