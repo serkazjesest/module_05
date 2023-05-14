@@ -58,6 +58,6 @@ func main() {
 			cache.Set(k1, step*i)
 		}(i)
 	}
-
+	wg.Wait()
 	fmt.Println(cache.Get(k1))
 }
