@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -40,56 +41,42 @@ const (
 	step = 7
 )
 
-//func main() {
-//	cache := Cache{storage: make(map[string]int)}
-//	var wg sync.WaitGroup
-//
-//	for i := 0; i < 10; i++ {
-//		wg.Add(1)
-//		go func() {
-//			defer wg.Done()
-//			cache.Increase(k1, step)
-//		}()
-//	}
-//
-//	for i := 0; i < 10; i++ {
-//		wg.Add(1)
-//		go func(i int) {
-//			defer wg.Done()
-//			cache.Set(k1, step*i)
-//		}(i)
-//	}
-//	wg.Wait()
-//	fmt.Println(cache.Get(k1))
-//}
-
 func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
 	cache := Cache{storage: make(map[string]int)}
 	semaphore := make(chan int, 4)
 
 	for i := 0; i < 10; i++ {
-		semaphore <- i
-		go func() {
-			defer func() {
-				_ = <-semaphore
+		select {
+		case semaphore <- i:
+			go func() {
+				cache.Increase(k1, step)
 			}()
-			cache.Increase(k1, step)
-		}()
+			cancel()
+		case <-ctx.Done():
+			fmt.Println("context deadline exceeded")
+			fmt.Println(cache.Get(k1))
+			return
+		default:
+			fmt.Println("waiting")
+			time.Sleep(time.Millisecond * 20)
+		}
 	}
 
 	for i := 0; i < 10; i++ {
-		semaphore <- i
-		go func(i int) {
-			defer func() {
-				_ = <-semaphore
-			}()
-			cache.Set(k1, step*i)
-		}(i)
+		select {
+		case semaphore <- i:
+			go func(i int) {
+				cache.Set(k1, step*i)
+			}(i)
+			cancel()
+		case <-ctx.Done():
+			fmt.Println("context deadline exceeded")
+			fmt.Println(cache.Get(k1))
+			return
+		default:
+			fmt.Println("waiting")
+			time.Sleep(time.Millisecond * 20)
+		}
 	}
-
-	for len(semaphore) > 0 {
-		time.Sleep(time.Millisecond * 15)
-	}
-
-	fmt.Println(cache.Get(k1))
 }
