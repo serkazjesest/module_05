@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 type Cache struct {
@@ -85,5 +86,10 @@ func main() {
 			cache.Set(k1, step*i)
 		}(i)
 	}
+
+	for len(semaphore) > 0 {
+		time.Sleep(time.Millisecond * 15)
+	}
+
 	fmt.Println(cache.Get(k1))
 }
