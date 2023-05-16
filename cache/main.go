@@ -39,25 +39,51 @@ const (
 	step = 7
 )
 
+//func main() {
+//	cache := Cache{storage: make(map[string]int)}
+//	var wg sync.WaitGroup
+//
+//	for i := 0; i < 10; i++ {
+//		wg.Add(1)
+//		go func() {
+//			defer wg.Done()
+//			cache.Increase(k1, step)
+//		}()
+//	}
+//
+//	for i := 0; i < 10; i++ {
+//		wg.Add(1)
+//		go func(i int) {
+//			defer wg.Done()
+//			cache.Set(k1, step*i)
+//		}(i)
+//	}
+//	wg.Wait()
+//	fmt.Println(cache.Get(k1))
+//}
+
 func main() {
 	cache := Cache{storage: make(map[string]int)}
-	var wg sync.WaitGroup
+	semaphore := make(chan int, 4)
 
 	for i := 0; i < 10; i++ {
-		wg.Add(1)
+		semaphore <- i
 		go func() {
-			defer wg.Done()
+			defer func() {
+				_ = <-semaphore
+			}()
 			cache.Increase(k1, step)
 		}()
 	}
 
 	for i := 0; i < 10; i++ {
-		wg.Add(1)
+		semaphore <- i
 		go func(i int) {
-			defer wg.Done()
+			defer func() {
+				_ = <-semaphore
+			}()
 			cache.Set(k1, step*i)
 		}(i)
 	}
-	wg.Wait()
 	fmt.Println(cache.Get(k1))
 }
