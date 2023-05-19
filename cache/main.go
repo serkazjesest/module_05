@@ -42,41 +42,40 @@ const (
 )
 
 func main() {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*100)
+	ctx, _ := context.WithTimeout(context.Background(), time.Millisecond*100)
 	cache := Cache{storage: make(map[string]int)}
 	semaphore := make(chan int, 4)
 
 	for i := 0; i < 10; i++ {
 		select {
-		case semaphore <- i:
-			go func() {
-				cache.Increase(k1, step)
-			}()
-			cancel()
 		case <-ctx.Done():
 			fmt.Println("context deadline exceeded")
-			fmt.Println(cache.Get(k1))
 			return
 		default:
-			fmt.Println("waiting")
-			time.Sleep(time.Millisecond * 20)
+			semaphore <- i
+			go func() {
+				defer func() {
+					_ = <-semaphore
+				}()
+				cache.Increase(k1, step)
+			}()
 		}
 	}
 
 	for i := 0; i < 10; i++ {
 		select {
-		case semaphore <- i:
-			go func(i int) {
-				cache.Set(k1, step*i)
-			}(i)
-			cancel()
 		case <-ctx.Done():
 			fmt.Println("context deadline exceeded")
-			fmt.Println(cache.Get(k1))
 			return
 		default:
-			fmt.Println("waiting")
-			time.Sleep(time.Millisecond * 20)
+			go func(i int) {
+				defer func() {
+					_ = <-semaphore
+				}()
+				cache.Set(k1, step*i)
+			}(i)
 		}
 	}
+
+	fmt.Println(cache.Get(k1))
 }
