@@ -68,6 +68,7 @@ func main() {
 			fmt.Println("context deadline exceeded")
 			return
 		default:
+			semaphore <- i
 			go func(i int) {
 				defer func() {
 					_ = <-semaphore
@@ -75,6 +76,10 @@ func main() {
 				cache.Set(k1, step*i)
 			}(i)
 		}
+	}
+
+	for len(semaphore) > 0 {
+		time.Sleep(time.Millisecond * 100)
 	}
 
 	fmt.Println(cache.Get(k1))
